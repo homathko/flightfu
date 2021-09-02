@@ -9,7 +9,7 @@
 import SwiftUI
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    let appState = App()
+    let app = App()
 }
 
 @main
@@ -18,7 +18,7 @@ struct FlightFuApp: SwiftUI.App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(app: appDelegate.appState)
+            ContentView(app: appDelegate.app)
         }
     }
 }

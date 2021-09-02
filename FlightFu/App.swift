@@ -8,9 +8,13 @@ import SwiftUI
 
 class App: ObservableObject {
     @ObservedObject var state: FFStateMachine
+    @Published var alert: PresentableAlert?
 
+    public var locationService = LocationService.shared
     private var events = FFAppEventEmitter()
     private var cancellables = Set<AnyCancellable>()
+
+    private var realVelocity = FFVelocityAnalyzer.shared
 
     init () {
         /// Configure event driven app state

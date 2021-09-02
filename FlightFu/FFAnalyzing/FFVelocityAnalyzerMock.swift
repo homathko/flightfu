@@ -4,15 +4,10 @@
 
 import Foundation
 
-class FFVelocityAnalyzerMock {
+class FFVelocityAnalyzerMock: FFAnalyzer {
     static let shared = FFVelocityAnalyzerMock()
-    var events: [FFEventEmitter] = []
 
-    private init () { }
-
-    func start (events: FFEventEmitter) {
-        self.events.append(events)
-    }
+    private override init () { }
 
     func testForArmedState () {
         Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] timer in
@@ -42,12 +37,5 @@ class FFVelocityAnalyzerMock {
 
     private func isWheelsDown () {
         events.forEach { $0.send(.wheelsDown) }
-    }
-
-    func kill (forEvents events: FFEventEmitter) {
-        if let index = self.events.firstIndex(where: { $0 === events }) {
-            self.events[index].kill()
-            self.events.remove(at: index)
-        }
     }
 }

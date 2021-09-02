@@ -4,14 +4,11 @@
 
 import Foundation
 
-class FFSoundAnalyzerMock {
+class FFSoundAnalyzerMock: FFAnalyzer {
     static let shared = FFSoundAnalyzerMock()
-    private var events: [FFEventEmitter] = []
 
-    private init () { }
-
-    func start (events: FFEventEmitter) {
-        self.events.append(events)
+    private override init () {
+        super.init()
     }
 
     func testForArmedState () {
@@ -34,12 +31,5 @@ class FFSoundAnalyzerMock {
 
     func engineStopped () {
         events.forEach { $0.send(.engineStop)}
-    }
-
-    func kill (forEvents events: FFEventEmitter) {
-        if let index = self.events.firstIndex(where: { $0 === events }) {
-            self.events[index].kill()
-            self.events.remove(at: index)
-        }
     }
 }
