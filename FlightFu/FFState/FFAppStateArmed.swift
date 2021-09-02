@@ -12,13 +12,13 @@ class FFAppStateArmed: FFState {
     private var engineState: FFStateMachine?
     private var velocityState: FFStateMachine?
     private var engineAnalyzer: FFSoundAnalyzerMock
-    private var velocityAnalyzer: FFVelocityAnalyzerMock
+    private var velocityAnalyzer: FFVelocityAnalyzer
 
     override init () {
         engineState = FFStateMachine(states: events.wiredArmedEngineSubStates())
         velocityState = FFStateMachine(states: events.wiredArmedVelocitySubStates())
         engineAnalyzer = FFSoundAnalyzerMock.shared
-        velocityAnalyzer = FFVelocityAnalyzerMock.shared
+        velocityAnalyzer = FFVelocityAnalyzer.shared
         engineAnalyzer.start(events: events)
         velocityAnalyzer.start(events: events)
         super.init()
@@ -34,7 +34,6 @@ class FFAppStateArmed: FFState {
         engineState!.enter(FFEngineStateSecure.self)
         velocityState!.enter(FFVelocityStateStationary.self)
         engineAnalyzer.testForArmedState()
-        velocityAnalyzer.testForArmedState()
     }
 
     override func willExit (to nextState: GKState) {
