@@ -9,13 +9,13 @@ class FFAppStateCapturing: FFState {
     private var events = FFCapturingEventEmitter()
     private var engineState: FFStateMachine?
     private var velocityState: FFStateMachine?
-    private var engineAnalyzer: FFSoundAnalyzerMock
+    private var engineAnalyzer: FFSoundAnalyzer
     private var velocityAnalyzer: FFVelocityAnalyzer
 
     override init () {
         engineState = FFStateMachine(states: events.wiredCapturingEngineSubStates())
         velocityState = FFStateMachine(states: events.wiredCapturingVelocitySubStates())
-        engineAnalyzer = FFSoundAnalyzerMock.shared
+        engineAnalyzer = FFSoundAnalyzer.shared
         velocityAnalyzer = FFVelocityAnalyzer.shared
         engineAnalyzer.start(events: events)
         velocityAnalyzer.start(events: events)
@@ -35,7 +35,6 @@ class FFAppStateCapturing: FFState {
         super.didEnter(from: previousState)
         engineState?.enter(FFEngineStateRunning.self)
         velocityState?.enter(FFVelocityStateRolling.self)
-        engineAnalyzer.testForCapturingState()
     }
 
     override func willExit (to nextState: GKState) {
@@ -55,6 +54,4 @@ class FFAppStateCapturing: FFState {
     func endCapture (_ event: FFEvent) {
 
     }
-
-    // TODO disconnect event subscribers on exit from this state
 }

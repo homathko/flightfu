@@ -11,13 +11,13 @@ class FFAppStateArmed: FFState {
     private var events = FFArmedEventEmitter()
     private var engineState: FFStateMachine?
     private var velocityState: FFStateMachine?
-    private var engineAnalyzer: FFSoundAnalyzerMock
+    private var engineAnalyzer: FFSoundAnalyzer
     private var velocityAnalyzer: FFVelocityAnalyzer
 
     override init () {
         engineState = FFStateMachine(states: events.wiredArmedEngineSubStates())
         velocityState = FFStateMachine(states: events.wiredArmedVelocitySubStates())
-        engineAnalyzer = FFSoundAnalyzerMock.shared
+        engineAnalyzer = FFSoundAnalyzer.shared
         velocityAnalyzer = FFVelocityAnalyzer.shared
         engineAnalyzer.start(events: events)
         velocityAnalyzer.start(events: events)
@@ -33,7 +33,6 @@ class FFAppStateArmed: FFState {
         super.didEnter(from: previousState)
         engineState!.enter(FFEngineStateSecure.self)
         velocityState!.enter(FFVelocityStateStationary.self)
-        engineAnalyzer.testForArmedState()
     }
 
     override func willExit (to nextState: GKState) {
@@ -62,6 +61,4 @@ class FFAppStateArmed: FFState {
     func endSensing () {
         stateMachine?.enter(FFAppStateIdle.self)
     }
-
-    // TODO disconnect event subscribers on exit from this state
 }
