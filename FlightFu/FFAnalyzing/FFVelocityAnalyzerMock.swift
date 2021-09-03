@@ -9,15 +9,15 @@ class FFVelocityAnalyzerMock: FFAnalyzer {
 
     private override init () { }
 
-    func testForArmedState () {
-        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] timer in
+    func testForArmedState (_ seconds: Double) {
+        Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] timer in
             timer.invalidate()
             self?.isRolling()
         }
     }
 
-    func testForCapturingState () {
-        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] timer in
+    func testForCapturingState (_ seconds: Double) {
+        Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] timer in
             timer.invalidate()
             self?.deadStopped()
         }

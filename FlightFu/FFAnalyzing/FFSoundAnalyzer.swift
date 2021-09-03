@@ -45,9 +45,10 @@ class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
 
         // Create results observer and keep strong reference
         resultsObserver = ResultsObserver { id, percent in
-            DispatchQueue.main.async {
-                self.classificationIdentifier = id
-                self.confidence = percent
+            if id == "running" && percent > 95 {
+                self.engineStarted()
+            } else if id == "secure" && percent > 95 {
+                self.engineStopped()
             }
         }
         
@@ -84,12 +85,28 @@ class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
         // Create a classify sound request that uses the custom sound classifier.
         return try SNClassifySoundRequest(mlModel: soundClassifier.model)
     }
+
+    private func engineStarted () {
+        DispatchQueue.main.async {
+            self.classificationIdentifier = "running"
+            self.confidence = "> 95"
+        }
+        events.forEach { $0.send(.engineStart) }
+    }
+
+    private func engineStopped () {
+        DispatchQueue.main.async {
+            self.classificationIdentifier = "secure"
+            self.confidence = "> 95"
+        }
+        events.forEach { $0.send(.engineStop) }
+    }
     
     // An observer that receives results from a classify sound request.
     private class ResultsObserver: NSObject, SNResultsObserving {
-        private var update: (String, String) -> ()
+        private var update: (String, Double) -> ()
         
-        init (update: @escaping (String, String) -> ()) {
+        init (update: @escaping (String, Double) -> ()) {
             self.update = update
         }
         
@@ -116,9 +133,8 @@ class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
             print("\(classification.identifier): \(percentString) confidence.\n")
         
             // Let parent class know
-            update(classification.identifier, percentString)
+            update(classification.identifier, percent)
         }
-
 
         /// Notifies the observer when a request generates an error.
         func request(_ request: SNRequest, didFailWithError error: Error) {

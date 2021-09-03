@@ -14,8 +14,6 @@ class App: ObservableObject {
     private var events = FFAppEventEmitter()
     private var cancellables = Set<AnyCancellable>()
 
-    private var realVelocity = FFVelocityAnalyzer.shared
-
     init () {
         /// Configure event driven app state
         state = FFStateMachine(states: events.wiredAppStates())

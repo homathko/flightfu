@@ -10,7 +10,11 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject var app: App
+#if targetEnvironment(simulator)
+    @ObservedObject var soundAnalyzer = FFSoundAnalyzerMock.shared
+#else
     @ObservedObject var soundAnalyzer = FFSoundAnalyzer.shared
+#endif
     @ObservedObject var velocityAnalyzer = FFVelocityAnalyzer.shared
     
     @State var alert: PresentableAlert?
