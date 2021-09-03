@@ -34,6 +34,6 @@ class FFCapturingEventEmitter: FFEventEmitter {
         assign(event: .brakeSet) { _ in velocityRolling.brakeSet() }
         assign(event: .wheelsUp) { _ in velocityRolling.wheelsUp() }
 
-        return [velocityStationary, velocityRolling]
+        return [velocityStationary, velocityRolling, velocityAirborne]
     }
 }

@@ -124,3 +124,9 @@ extension LocationService: CLLocationManagerDelegate {
         heading = newHeading
     }
 }
+
+extension CLLocationSpeed {
+    var knots: Double {
+        self * 1.94384
+    }
+}

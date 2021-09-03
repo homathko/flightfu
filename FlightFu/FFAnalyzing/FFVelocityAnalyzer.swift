@@ -5,10 +5,14 @@
 import Foundation
 import Combine
 
-class FFVelocityAnalyzer: FFAnalyzer {
+class FFVelocityAnalyzer: FFAnalyzer, ObservableObject {
     static let shared = FFVelocityAnalyzer()
+    
+    @Published var brakeState: String = ""
+    @Published var accuracy: String = ""
+    
     private var service = LocationService.shared
-    var cancellables = Set<AnyCancellable>()
+    private var cancellables = Set<AnyCancellable>()
 
     /// AppStateArmed logic will stop waiting for brakeRelease
     /// event if speed accuracy is intolerable at the time the
@@ -21,7 +25,9 @@ class FFVelocityAnalyzer: FFAnalyzer {
         service.$location.sink { location in
             if let location = location {
                 /// Negative values indicate invalid values
-                self.accuracyIsTolerable = location.speedAccuracy >= 0 && location.speedAccuracy <= 2
+                let goodEnough = location.speedAccuracy >= 0 && location.speedAccuracy <= 2
+                self.accuracyIsTolerable = goodEnough
+                self.accuracy = String(format: "%0.1f", location.speedAccuracy)
             }
         } .store(in: &cancellables)
     }
@@ -31,10 +37,21 @@ class FFVelocityAnalyzer: FFAnalyzer {
 
         service.$location.sink { location in
             if let location = location {
-                if location.speed > 1 {
+                if (1..<20).contains(location.speed.knots) {
                     events.send(.brakeRelease)
+                    events.send(.wheelsDown)
+
+                    if self.brakeState != "release" {
+                        self.brakeState = "release"
+                    }
+                } else if location.speed.knots >= 20 {
+                    events.send(.wheelsUp)
                 } else {
                     events.send(.brakeSet)
+                    
+                    if self.brakeState != "set" {
+                        self.brakeState = "set"
+                    }
                 }
             }
         } .store(in: &cancellables)

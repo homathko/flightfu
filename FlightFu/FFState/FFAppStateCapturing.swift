@@ -55,3 +55,16 @@ class FFAppStateCapturing: FFState {
 
     }
 }
+
+extension FFAppStateCapturing {
+    public var velocity: FFState? {
+        velocityState?.currentState as? FFVelocityStateStationary ??
+                velocityState?.currentState as? FFVelocityStateRolling ??
+                velocityState?.currentState as? FFVelocityStateAirborne
+    }
+
+    public var engine: FFState? {
+        engineState?.currentState as? FFEngineStateSecure ??
+                engineState?.currentState as? FFEngineStateRunning
+    }
+}
