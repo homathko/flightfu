@@ -8,9 +8,10 @@ import Combine
 class FFSoundAnalyzerMock: FFAnalyzer, ObservableObject {
     static let shared = FFSoundAnalyzerMock()
 
-    @Published var error: Error?
+    @Published var error: FFError?
     @Published var classificationIdentifier: String = ""
     @Published var confidence: String = "mock"
+    @Published var micAmplitude: Float = 0
 
     private override init () {
         super.init()

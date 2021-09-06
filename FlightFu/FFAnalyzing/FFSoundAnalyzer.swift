@@ -4,15 +4,20 @@
 
 import Foundation
 import Combine
+import Accelerate
 import SoundAnalysis
 import CoreML
+
+enum CoreMLClassificationIdentifiers {
+    case secure, running
+}
 
 class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
     static let shared = FFSoundAnalyzer()
     
-    @Published var error: Error?
-    @Published var classificationIdentifier: String = ""
-    @Published var confidence: String = ""
+    @Published var error: FFError?
+    @Published var classificationIdentifier: CoreMLClassificationIdentifiers = .secure
+    @Published var micAmplitude: Float = 0.0
 
     private var audioEngine: AVAudioEngine
     private var inputBus: Int
@@ -32,23 +37,36 @@ class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
         streamAnalyzer = SNAudioStreamAnalyzer(format: inputFormat)
         
         super.init()
-        
+
+        let mixer = audioEngine.mainMixerNode
+        audioEngine.connect(audioEngine.inputNode, to: mixer, format: inputFormat)
+
         // Install tap to route audio buffer to stream analyzer
         audioEngine.inputNode.installTap(onBus: inputBus,
                 bufferSize: 8192,
                 format: inputFormat,
                 block: analyzeAudio(buffer:at:))
+
+        // Install tap to measure mic input amplitude
+        mixer.installTap(onBus: inputBus,
+                bufferSize: 4096,
+                format: mixer.inputFormat(forBus: inputBus),
+                block: getAmplitude(buffer:at:))
     }
 
     override func start (events: FFEventEmitter) {
         super.start(events: events)
 
         // Create results observer and keep strong reference
-        resultsObserver = ResultsObserver { id, percent in
-            if id == "running" && percent > 95 {
-                self.engineStarted()
-            } else if id == "secure" && percent > 95 {
-                self.engineStopped()
+        resultsObserver = ResultsObserver { result, confidence in
+            if case .failure(let error) = result {
+                self.analyzingFailed(error)
+            } else if case .success(let value) = result {
+                if value == "running" && confidence > 95 && self.micAmplitude > 0.28 {
+                    self.engineStarted()
+                } else if value == "secure" && confidence > 95 {
+                    self.engineStopped()
+                }
             }
         }
         
@@ -56,26 +74,43 @@ class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
             let request = try getRequest()
             // Add the sound analysis request to the stream analyzer with the result observer
             try streamAnalyzer.add(request, withObserver: resultsObserver!)
-        } catch (let err) {
-            print("Unable to set up analyzer: \(err.localizedDescription)")
-            self.error = err
+        } catch (let error) {
+            print("Unable to set up analyzer: \(error.localizedDescription)")
+            analyzingFailed(FFError(error))
         }
-        
-        startAudioEngine()
-    }
 
-    private func startAudioEngine() {
         do {
             // Start the stream of audio data.
             try audioEngine.start()
-        } catch {
+        } catch (let error) {
             print("Unable to start AVAudioEngine: \(error.localizedDescription)")
+            analyzingFailed(FFError(error))
         }
     }
 
     private func analyzeAudio(buffer: AVAudioBuffer, at time: AVAudioTime) {
         analysisQueue.async {
             self.streamAnalyzer.analyze(buffer, atAudioFramePosition: time.sampleTime)
+        }
+    }
+
+    private func getAmplitude(buffer: AVAudioPCMBuffer, at time: AVAudioTime) {
+        analysisQueue.async {
+            guard let floatData = buffer.floatChannelData else { return }
+
+            let channelCount = Int(buffer.format.channelCount)
+            let length = UInt(buffer.frameLength)
+
+            // n is the channel
+            for n in 0 ..< channelCount {
+                let data = floatData[n]
+
+                var rms: Float = 0
+                vDSP_rmsqv(data, 1, &rms, UInt(length))
+                DispatchQueue.main.async {
+                    self.micAmplitude = rms
+                }
+            }
         }
     }
 
@@ -88,25 +123,30 @@ class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
 
     private func engineStarted () {
         DispatchQueue.main.async {
-            self.classificationIdentifier = "running"
-            self.confidence = "> 95"
+            self.classificationIdentifier = .running
         }
         events.forEach { $0.send(.engineStart) }
     }
 
     private func engineStopped () {
         DispatchQueue.main.async {
-            self.classificationIdentifier = "secure"
-            self.confidence = "> 95"
+            self.classificationIdentifier = .secure
         }
         events.forEach { $0.send(.engineStop) }
+    }
+
+    private func analyzingFailed (_ error: FFError) {
+        DispatchQueue.main.async {
+            self.error = error
+        }
+        events.forEach { $0.send(.error(error)) }
     }
     
     // An observer that receives results from a classify sound request.
     private class ResultsObserver: NSObject, SNResultsObserving {
-        private var update: (String, Double) -> ()
+        private var update: (Result<String, FFError>, Double) -> ()
         
-        init (update: @escaping (String, Double) -> ()) {
+        init (update: @escaping (Result<String, FFError>, Double) -> ()) {
             self.update = update
         }
         
@@ -126,24 +166,28 @@ class FFSoundAnalyzer: FFAnalyzer, ObservableObject {
             print("Analysis result for audio at time: \(formattedTime)")
 
             // Convert the confidence to a percentage string.
-            let percent = classification.confidence * 100.0
-            let percentString = String(format: "%.0f%", percent)
+            let percentConfident = classification.confidence * 100.0
+            let percentString = String(format: "%.0f%", percentConfident)
 
             // Print the classification's name (label) with its confidence.
             print("\(classification.identifier): \(percentString) confidence.\n")
         
             // Let parent class know
-            update(classification.identifier, percent)
+            let success = Result<String, FFError>.success(classification.identifier)
+            update(success, percentConfident)
         }
 
         /// Notifies the observer when a request generates an error.
         func request(_ request: SNRequest, didFailWithError error: Error) {
             print("The the analysis failed: \(error.localizedDescription)")
+            let failure = Result<String, FFError>.failure(FFError(error))
+            update(failure, 100) // 1 Hundo P
         }
 
         /// Notifies the observer when a request is complete.
         func requestDidComplete(_ request: SNRequest) {
             print("The request completed successfully!")
+            assert(false, "This should not execute")
         }
     }
 }

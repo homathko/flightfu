@@ -7,20 +7,20 @@ import UIKit
 import Combine
 
 class FFEventEmitter {
-    public var publisher: PassthroughSubject<FFEvent, Never>?
+    private var subject = PassthroughSubject<FFEvent, Never>()
     var cancellables = Set<AnyCancellable>()
 
     init () {
         /// Create the subject for the app
-        publisher = PassthroughSubject<FFEvent, Never>()
+        subject = PassthroughSubject<FFEvent, Never>()
+    }
+
+    public var publisher: AnyPublisher<FFEvent, Never> {
+        subject.share().eraseToAnyPublisher()
     }
 
     internal func publisher (for event: FFEvent) -> AnyPublisher<FFEvent, Never> {
-        guard publisher != nil else {
-            return PassthroughSubject<FFEvent, Never>().eraseToAnyPublisher()
-        }
-
-        return publisher!.filter { e in
+        subject.share().filter { e in
             event == e
         }.eraseToAnyPublisher()
     }
@@ -30,16 +30,13 @@ class FFEventEmitter {
     }
 
     public func send (_ event: FFEvent) {
-        print("\(self) \(#function): \(event)")
-        publisher?.send(event)
+        if event != .tick {
+            print("\(self) \(#function): \(event)")
+        }
+        subject.send(event)
     }
 
     public func kill () {
         cancellables.forEach { $0.cancel() }
-        publisher = nil
-    }
-
-    deinit {
-        print("\(self) \(#function)")
     }
 }

@@ -10,8 +10,6 @@ import GameplayKit
 class FFAppEventEmitter: FFEventEmitter {
     override init () {
         super.init()
-        /// Create the subject for the app
-        publisher = PassthroughSubject<FFEvent, Never>()
 
         /// Listen for a few important signals from the system
         NotificationCenter.default.publisher(for: UIApplication.didFinishLaunchingNotification).sink { notification in
@@ -51,13 +49,13 @@ class FFAppEventEmitter: FFEventEmitter {
         assign(event: .beginSensing) { _ in idle.beginSensing() }
         assign(event: .terminate) { event in idle.terminate(event) }
         /// Armed state transitions
-        assign(event: .error(.none)) { event in armed.error(event) }
+        assign(event: .error(.analyzerFailed)) { event in armed.error(event) }
         assign(event: .beginCapture) { event in armed.beginCapture() }
         assign(event: .endSensing) { event in armed.endSensing() }
         assign(event: .tick) { event in armed.checkForCapturingState() }
         /// Capturing state transitions
-        assign(event: .error(.none)) { event in capturing.error(event) }
-        assign(event: .tick) { event in capturing.checkForIdleState() }
+        assign(event: .error(.analyzerFailed)) { event in capturing.error(event) }
+        assign(event: .tick) { event in capturing.checkForSecureState() }
         assign(event: .endCapture) { event in capturing.endCapture(event) }
 
         return [idle, armed, capturing]

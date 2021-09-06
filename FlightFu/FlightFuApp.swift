@@ -18,7 +18,7 @@ struct FlightFuApp: SwiftUI.App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView(app: appDelegate.app)
+            ContentView().environmentObject(appDelegate.app)
         }
     }
 }

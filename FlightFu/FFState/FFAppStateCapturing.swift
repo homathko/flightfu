@@ -5,8 +5,8 @@
 import Foundation
 import GameplayKit
 
-class FFAppStateCapturing: FFState {
-    private var events = FFCapturingEventEmitter()
+class FFAppStateCapturing: FFState, FFStateEventful {
+    private var _events = FFCapturingEventEmitter()
     private var engineState: FFStateMachine?
     private var velocityState: FFStateMachine?
 #if targetEnvironment(simulator)
@@ -17,16 +17,16 @@ class FFAppStateCapturing: FFState {
     private var velocityAnalyzer: FFVelocityAnalyzer
 
     override init () {
-        engineState = FFStateMachine(states: events.wiredCapturingEngineSubStates())
-        velocityState = FFStateMachine(states: events.wiredCapturingVelocitySubStates())
+        engineState = FFStateMachine(states: _events.wiredCapturingEngineSubStates())
+        velocityState = FFStateMachine(states: _events.wiredCapturingVelocitySubStates())
     #if targetEnvironment(simulator)
         engineAnalyzer = FFSoundAnalyzerMock.shared
     #else
         engineAnalyzer = FFSoundAnalyzer.shared
     #endif
         velocityAnalyzer = FFVelocityAnalyzer.shared
-        engineAnalyzer.start(events: events)
-        velocityAnalyzer.start(events: events)
+        engineAnalyzer.start(events: _events)
+        velocityAnalyzer.start(events: _events)
         super.init()
     }
 
@@ -53,15 +53,20 @@ class FFAppStateCapturing: FFState {
         print("leaving capturing state for idle state")
     }
 
-    func checkForIdleState () {
+    func checkForSecureState () {
         if stateMachine?.currentState == self {
-            if engineState?.current is FFEngineStateSecure &&
-                       velocityState?.current is FFVelocityStateStationary {
+            if engineState?.currentState is FFEngineStateSecure &&
+                       velocityState?.currentState is FFVelocityStateStationary {
                 stateMachine?.enter(FFAppStateIdle.self)
             }
         }
     }
 
+    var events: FFEventEmitter {
+        _events
+    }
+
+    /// Transitions
     func endCapture (_ event: FFEvent) {
 
     }

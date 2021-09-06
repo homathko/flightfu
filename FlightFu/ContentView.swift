@@ -9,13 +9,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject var app: App
-#if targetEnvironment(simulator)
-    @ObservedObject var soundAnalyzer = FFSoundAnalyzerMock.shared
-#else
-    @ObservedObject var soundAnalyzer = FFSoundAnalyzer.shared
-#endif
-    @ObservedObject var velocityAnalyzer = FFVelocityAnalyzer.shared
+    @EnvironmentObject var app: App
     
     @State var alert: PresentableAlert?
 
@@ -25,45 +19,31 @@ struct ContentView: View {
             /// Flight state
             ///
             VStack {
-                Text(flightState).font(.system(size: 24))
-            }
-            ///
-            /// Key metrics
-            ///
-            VStack {
                 HStack {
                     KeyMetricView(
-                        name: "Engine",
-                        value: soundAnalyzer.classificationIdentifier,
-                        unit: ""
-                    )
-                    KeyMetricView(
-                        name: "Confidence",
-                        value: soundAnalyzer.confidence,
-                        unit: "%"
-                    )
-                }
-                HStack {
-                    KeyMetricView(
-                        name: "Brakes",
-                        value: velocityAnalyzer.brakeState,
-                        unit: ""
-                    )
-                    KeyMetricView(
-                        name: "Accuracy",
-                        value: velocityAnalyzer.accuracy,
-                        unit: "m"
+                            name: "System",
+                            value: "\(app.systemState)",
+                            unit: ""
                     )
                 }
             }
-            
             ///
             /// Action button
             ///
             VStack {
-                if app.state.current is FFAppStateIdle { idle }
-                else if app.state.current is FFAppStateArmed { armed }
-                else if app.state.current is FFAppStateCapturing { capturing }
+                if app.flightfu.state is FFAppStateIdle { idle }
+                else if app.flightfu.state is FFAppStateArmed { armed }
+                else if app.flightfu.state is FFAppStateCapturing { capturing }
+            }
+
+            VStack {
+                HStack {
+                    KeyMetricView(
+                            name: "Flight State",
+                            value: "\(app.flightState)",
+                            unit: ""
+                    )
+                }
             }
         }
 
@@ -86,12 +66,13 @@ struct ContentView: View {
                 .onReceive(app.$alert) { alert in
                     self.alert = alert
                 }
+
     }
 
     var idle: some View {
         Button("Arm") {
             if app.locationService.start(forServiceLevel: .velocityOnly) {
-                app.arm()
+                app.flightfu.arm()
             } else {
                 app.alert = PresentableAlert(
                         title: "Location required",
@@ -119,7 +100,7 @@ struct ContentView: View {
 
     var armed: some View {
         Button("Disarm") {
-            app.disarm()
+            app.flightfu.disarm()
         }
                 .buttonStyle(MyButtonStyle())
     }
@@ -127,32 +108,11 @@ struct ContentView: View {
     var capturing: some View {
         Text("Capturing")
     }
-
-    var flightState: String {
-        if let state = app.state.current as? FFAppStateCapturing {
-            if let velocity = state.velocity,
-            let engine = state.engine {
-                switch (velocity, engine) {
-                    case (is FFVelocityStateStationary, is FFEngineStateSecure): return ""
-                    case (is FFVelocityStateStationary, is FFEngineStateRunning): return "Idling"
-                    case (is FFVelocityStateRolling, is FFEngineStateSecure): return "NOT good"
-                    case (is FFVelocityStateRolling, is FFEngineStateRunning): return "Taxiing"
-                    case (is FFVelocityStateAirborne, is FFEngineStateSecure): return "Gliding"
-                    case (is FFVelocityStateAirborne, is FFEngineStateRunning): return "Flying"
-                    default: return "No match"
-                }
-            } else {
-                return ""
-            }
-        } else {
-            return ""
-        }
-    }
 }
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView(app: App())
+        ContentView().environmentObject(App())
     }
 }
 

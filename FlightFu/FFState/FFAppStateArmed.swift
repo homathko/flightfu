@@ -7,8 +7,8 @@ import GameplayKit
 ///
 /// Armed state had a nested state machine to monitor
 /// for flight events as well as system events
-class FFAppStateArmed: FFState {
-    private var events = FFArmedEventEmitter()
+class FFAppStateArmed: FFState, FFStateEventful {
+    private var _events = FFArmedEventEmitter()
     private var engineState: FFStateMachine?
     private var velocityState: FFStateMachine?
 #if targetEnvironment(simulator)
@@ -19,16 +19,16 @@ class FFAppStateArmed: FFState {
     private var velocityAnalyzer: FFVelocityAnalyzer
 
     override init () {
-        engineState = FFStateMachine(states: events.wiredArmedEngineSubStates())
-        velocityState = FFStateMachine(states: events.wiredArmedVelocitySubStates())
+        engineState = FFStateMachine(states: _events.wiredArmedEngineSubStates())
+        velocityState = FFStateMachine(states: _events.wiredArmedVelocitySubStates())
     #if targetEnvironment(simulator)
         engineAnalyzer = FFSoundAnalyzerMock.shared
     #else
         engineAnalyzer = FFSoundAnalyzer.shared
     #endif
         velocityAnalyzer = FFVelocityAnalyzer.shared
-        engineAnalyzer.start(events: events)
-        velocityAnalyzer.start(events: events)
+        engineAnalyzer.start(events: _events)
+        velocityAnalyzer.start(events: _events)
         super.init()
     }
 
@@ -53,11 +53,15 @@ class FFAppStateArmed: FFState {
 
     func checkForCapturingState () {
         if stateMachine?.currentState == self {
-            if engineState?.current is FFEngineStateRunning &&
-                       velocityState?.current is FFVelocityStateRolling {
-                stateMachine?.enter(FFAppStateCapturing.self)
+            if engineState?.currentState is FFEngineStateRunning &&
+               velocityState?.currentState is FFVelocityStateRolling {
+                    beginCapture()
             }
         }
+    }
+
+    var events: FFEventEmitter {
+        _events
     }
 
     /// Transitions
@@ -66,10 +70,23 @@ class FFAppStateArmed: FFState {
     }
 
     func beginCapture () {
-
+        stateMachine?.enter(FFAppStateCapturing.self)
     }
 
     func endSensing () {
         stateMachine?.enter(FFAppStateIdle.self)
+    }
+}
+
+extension FFAppStateArmed {
+    public var velocity: FFState? {
+        velocityState?.currentState as? FFVelocityStateStationary ??
+                velocityState?.currentState as? FFVelocityStateRolling ??
+                velocityState?.currentState as? FFVelocityStateAirborne
+    }
+
+    public var engine: FFState? {
+        engineState?.currentState as? FFEngineStateSecure ??
+                engineState?.currentState as? FFEngineStateRunning
     }
 }

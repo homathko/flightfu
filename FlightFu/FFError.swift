@@ -4,6 +4,22 @@
 
 import Foundation
 
-enum FFError: Error {
-    case none
+enum FFError: LocalizedError {
+    case analyzerFailed
+
+    init(_ error: Error) {
+        print("NEW FF_ERR ## ## ## ## - \(error.localizedDescription)")
+        dump(error)
+
+        self = .analyzerFailed
+    }
+
+    var errorDescription: String? {
+        switch self {
+            case .analyzerFailed:
+                return NSLocalizedString(
+                        "The sound analyzer failed. Please try relaunching the app",
+                        comment: "")
+        }
+    }
 }

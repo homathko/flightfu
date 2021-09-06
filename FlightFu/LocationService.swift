@@ -4,8 +4,9 @@
 //
 
 import Foundation
-import UIKit.UIApplication
+//import UIKit.UIApplication
 import CoreLocation
+import Combine
 
 /// The level of service available based on
 /// permissions given by the user, based on
@@ -27,10 +28,11 @@ class LocationService: NSObject, ObservableObject {
 
     public var heading: CLHeading?
 
-    @Published var location: CLLocation?
+    public var subject: CurrentValueSubject<CLLocation?, FFError>
 
     private override init () {
         authStatus = locationManager.authorizationStatus
+        subject = CurrentValueSubject<CLLocation?, FFError>(nil)
         super.init()
         locationManager.activityType = .otherNavigation
         locationManager.delegate = self
@@ -104,6 +106,10 @@ class LocationService: NSObject, ObservableObject {
         locationManager.stopUpdatingLocation()
         locationManager.allowsBackgroundLocationUpdates = false
     }
+
+    public var publisher: AnyPublisher<CLLocation?, FFError> {
+        subject.share().eraseToAnyPublisher()
+    }
 }
 
 extension LocationService: CLLocationManagerDelegate {
@@ -112,21 +118,30 @@ extension LocationService: CLLocationManagerDelegate {
         stop()
         /// TODO If there is an active cycle when the auth changes (edge case)
         /// the recorded flight path will be affected
-        _ = start(forServiceLevel: self.serviceLevel)
+        _ = start(forServiceLevel: serviceLevel)
     }
 
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        self.locations = locations
-        location = locations.last
+        subject.send(locations.last)
     }
 
     public func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         heading = newHeading
+    }
+
+    public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        subject.send(completion: .failure(FFError(error)))
     }
 }
 
 extension CLLocationSpeed {
     var knots: Double {
         self * 1.94384
+    }
+}
+
+extension CLLocation {
+    var isPrecise: Bool {
+        speedAccuracy >= 0 && speedAccuracy <= 2
     }
 }

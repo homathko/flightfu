@@ -7,29 +7,38 @@ import Combine
 import SwiftUI
 
 class App: ObservableObject {
-    @ObservedObject var state: FFStateMachine
+    public var flightfu = FlightFu()
+    public var locationService = LocationService.shared
+
+    @Published var systemState: FlightFuSystemState = .idle
+    @Published var flightState: FlightFuFlightState = .secure
     @Published var alert: PresentableAlert?
 
-    public var locationService = LocationService.shared
-    private var events = FFAppEventEmitter()
     private var cancellables = Set<AnyCancellable>()
 
     init () {
-        /// Configure event driven app state
-        state = FFStateMachine(states: events.wiredAppStates())
-        /// Set the machine in motion
-        state.enter(FFAppStateIdle.self)
+        flightfu.flightStatePublisher()
+                .receive(on: DispatchQueue.main)
+                .sink(receiveCompletion: { completion in
+                    switch completion {
+                        case .finished: ()
+                        case .failure(let error): print(error.errorDescription ?? "N/A")
+                    }
+                }, receiveValue: { state in
+                    print("Flight state changed to: \(state)")
+                    self.flightState = state
+                }).store(in: &cancellables)
 
-        state.$current.receive(on: DispatchQueue.main).sink { newState in
-            self.objectWillChange.send()
-        }.store(in: &cancellables)
-    }
-
-    func arm () {
-        events.send(.beginSensing)
-    }
-
-    func disarm () {
-        events.send(.endSensing)
+        flightfu.systemStatePublisher()
+                .receive(on: DispatchQueue.main)
+                .sink(receiveCompletion: { completion in
+                    switch completion {
+                        case .finished: ()
+                        case .failure(let error): print(error.errorDescription ?? "N/A")
+                    }
+                }, receiveValue: { state in
+                    print("System state changed to \(state)")
+                    self.systemState = state
+                }).store(in: &cancellables)
     }
 }
