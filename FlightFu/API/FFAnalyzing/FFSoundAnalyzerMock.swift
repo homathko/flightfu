@@ -21,7 +21,7 @@ class FFSoundAnalyzerMock: FFAnalyzer, ObservableObject {
         DispatchQueue.main.async {
             self.classificationIdentifier = "secure"
         }
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] timer in
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { [weak self] timer in
             timer.invalidate()
             self?.engineStarted()
         }

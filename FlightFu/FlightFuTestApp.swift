@@ -1,5 +1,5 @@
 //
-//  FlightFuApp.swift
+//  FlightFuTestApp.swift
 //  FlightFu
 //
 //  Created by Eric Lightfoot on 2021-08-26.
@@ -13,7 +13,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 }
 
 @main
-struct FlightFuApp: SwiftUI.App {
+struct FlightFuTestApp: SwiftUI.App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

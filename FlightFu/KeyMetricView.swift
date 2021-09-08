@@ -40,7 +40,7 @@ struct KeyMetricView: View {
             }
                     .modifier(DebugBorder(enabled: debug))
         }
-        .frame(width: 150, height: 150, alignment: .center)
+        .frame(height: 150, alignment: .center)
                 .modifier(DebugBorder(enabled: debug))
     }
 }

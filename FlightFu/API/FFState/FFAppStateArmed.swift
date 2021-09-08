@@ -5,8 +5,8 @@
 import Foundation
 import GameplayKit
 ///
-/// Armed state had a nested state machine to monitor
-/// for flight events as well as system events
+/// Armed state has nested state machines to monitor
+/// for flight events
 class FFAppStateArmed: FFState, FFStateEventful {
     private var _events = FFArmedEventEmitter()
     private var engineState: FFStateMachine?
@@ -48,7 +48,6 @@ class FFAppStateArmed: FFState, FFStateEventful {
 
     override func willExit (to nextState: GKState) {
         super.willExit(to: nextState)
-        print("leaving armed state for capturing state")
     }
 
     func checkForCapturingState () {

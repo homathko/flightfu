@@ -5,10 +5,21 @@ import Foundation
 import Combine
 import CoreLocation
 
+/// FlightFu is an experimental API that publishes aircraft
+/// flight state changes. It leverages the Sound Analysis
+/// framework to determine if audio signal from the device
+/// microphone sounds like an aircraft engine "running".
+/// The ML model included with the package was trained with
+/// ~25 audio recordings of C172, C182, and C185 aircraft
+/// taken from the cockpit position with an iPhone.
+
+/// "System" states of the API
 enum FlightFuSystemState {
     case idle, armed, capturing
 }
 
+/// "Flight" states, which are sub states mutual to the Armed
+/// and Capturing system states
 enum FlightFuFlightState: String {
     case secure, idling, taxiing, airborne, gliding
 }
@@ -29,6 +40,7 @@ final class FlightFu {
     init () {
         /// Configure event driven app state
         stateMachine = FFStateMachine(states: events.wiredAppStates())
+
         // System state can be idle, armed or capturing
         stateMachine.publisher().sink(receiveCompletion: { completion in
             switch completion {
@@ -62,6 +74,7 @@ final class FlightFu {
                 default: ()
             }
         }).store(in: &cancellables)
+
         /// Set the machine in motion
         stateMachine.enter(FFAppStateIdle.self)
     }

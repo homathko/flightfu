@@ -16,7 +16,7 @@ struct ContentView: View {
     var body: some View {
         VStack {
             ///
-            /// Flight state
+            /// System state
             ///
             VStack {
                 HStack {
@@ -27,6 +27,7 @@ struct ContentView: View {
                     )
                 }
             }
+
             ///
             /// Action button
             ///
@@ -36,6 +37,9 @@ struct ContentView: View {
                 else if app.flightfu.state is FFAppStateCapturing { capturing }
             }
 
+            ///
+            /// Flight state
+            ///
             VStack {
                 HStack {
                     KeyMetricView(

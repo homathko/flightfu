@@ -16,7 +16,7 @@ class FFCapturingEventEmitter: FFEventEmitter {
         /// Engine running state
         assign(event: .engineStop) { _ in engineRunning.engineStop() }
         /// Engine secure state
-        assign(event: .engineStart) { _ in engineSecure.engineStart() }
+//        assign(event: .engineStart) { _ in engineSecure.engineStart() }
 
         return [engineRunning, engineSecure]
     }
